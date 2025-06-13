@@ -27,7 +27,6 @@ class TTP_Events_Tracking {
         add_action('wp_footer', array($this, 'track_add_to_cart_searchanise'));
         add_action('wp_footer', array($this, 'track_single_product_add_to_cart'));
         add_action('wp_footer', array($this, 'track_search_events'));
-        add_action('wp_footer', array($this, 'track_high_interest'));
         add_action('woocommerce_after_checkout_form', array($this, 'track_initiate_checkout'));
         add_action('woocommerce_thankyou', array($this, 'track_purchase'));
         
