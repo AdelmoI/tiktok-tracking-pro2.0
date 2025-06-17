@@ -27,7 +27,6 @@ class TTP_Events_Tracking {
         add_action('wp_footer', array($this, 'track_add_to_cart_searchanise'));
         add_action('wp_footer', array($this, 'track_single_product_add_to_cart'));
         add_action('wp_footer', array($this, 'track_search_events'));
-        add_action('wp_footer', array($this, 'track_high_interest'));
         add_action('woocommerce_after_checkout_form', array($this, 'track_initiate_checkout'));
         add_action('woocommerce_thankyou', array($this, 'track_purchase'));
         
@@ -67,7 +66,7 @@ class TTP_Events_Tracking {
         
         ?>
         <script>
-        // TikTok ViewContent - CLEAN VERSION
+        // TikTok ViewContent - OTTIMIZZATO
         (function() {
             var productData = {
                 id: '<?php echo $product_id; ?>',
@@ -78,11 +77,7 @@ class TTP_Events_Tracking {
             };
             
             function sendViewContent() {
-                console.log('🔄 TikTok ViewContent - Real Product');
-                console.log('Product data:', productData);
-                
                 if (typeof ttq === 'undefined' || typeof ttq.track !== 'function') {
-                    console.log('⏳ TikTok not ready, retrying...');
                     setTimeout(sendViewContent, 500);
                     return;
                 }
@@ -99,9 +94,7 @@ class TTP_Events_Tracking {
                         content_type: 'product'
                     };
                     
-                    console.log('📤 Sending TikTok ViewContent:', eventData);
                     ttq.track('ViewContent', eventData);
-                    console.log('✅ TikTok ViewContent sent successfully');
                     
                     // Server-side backup
                     if (typeof jQuery !== 'undefined') {
@@ -116,13 +109,13 @@ class TTP_Events_Tracking {
                     }
                     
                 } catch (error) {
-                    console.error('❌ TikTok ViewContent error:', error);
+                    console.error('TikTok ViewContent error:', error);
                     setTimeout(sendViewContent, 1000);
                 }
             }
             
-            // Avvia dopo 4 secondi
-            setTimeout(sendViewContent, 4000);
+            // Avvia dopo 500ms invece di 4 secondi
+            setTimeout(sendViewContent, 500);
             
         })();
         </script>
@@ -140,7 +133,7 @@ class TTP_Events_Tracking {
     }
     
     /**
-     * Traccia AddToCart per Searchanise
+     * Traccia AddToCart per Searchanise - PRODUCTION CLEAN
      */
     public function track_add_to_cart_searchanise() {
         if (!(is_shop() || is_product_category() || is_product_tag() || is_search() || (isset($_GET['se']) && $_GET['se']))) {
@@ -149,148 +142,182 @@ class TTP_Events_Tracking {
         
         ?>
         <script>
-        jQuery(document).ready(function($) {
-            var originalXHR = window.XMLHttpRequest;
-            var originalOpen = originalXHR.prototype.open;
-            var originalSend = originalXHR.prototype.send;
-            
-            if (!window.ttpSearchaniseIntercepted) {
-                window.ttpSearchaniseIntercepted = true;
+        // TikTok Searchanise Tracking - PRODUCTION VERSION
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof jQuery === 'undefined') return;
                 
-                originalXHR.prototype.open = function(method, url, async, user, password) {
-                    this._url = url;
-                    this._method = method;
-                    return originalOpen.apply(this, arguments);
-                };
-                
-                originalXHR.prototype.send = function(data) {
-                    var self = this;
+                jQuery(function($) {
+                    var originalXHR = window.XMLHttpRequest;
+                    var originalOpen = originalXHR.prototype.open;
+                    var originalSend = originalXHR.prototype.send;
                     
-                    var isSearchaniseAddToCart = this._url && (
-                        (this._url.includes('se_ajax_add_to_cart') && this._url.includes('product_id=')) ||
-                        this._url.includes('snize') ||
-                        this._url.includes('searchanise')
-                    ) && 
-                    !(this._url && (
-                        this._url.includes('get_refreshed_fragments') ||
-                        this._url.includes('search-results') ||
-                        this._url.includes('se_get_results')
-                    ));
+                    // Throttling per performance
+                    var lastIntercept = 0;
+                    var interceptThreshold = 200;
                     
-                    if (isSearchaniseAddToCart) {
-                        try {
-                            var product_id = null;
-                            var quantity = 1;
+                    if (!window.ttpSearchaniseIntercepted) {
+                        window.ttpSearchaniseIntercepted = true;
+                        
+                        originalXHR.prototype.open = function(method, url, async, user, password) {
+                            this._url = url;
+                            this._method = method;
+                            return originalOpen.apply(this, arguments);
+                        };
+                        
+                        originalXHR.prototype.send = function(data) {
+                            var self = this;
+                            var now = Date.now();
                             
-                            var urlPatterns = [
-                                /[?&]product_id=(\d+)/i,
-                                /se_ajax_add_to_cart.*product_id[=:](\d+)/i
-                            ];
+                            if (now - lastIntercept < interceptThreshold) {
+                                return originalSend.apply(this, arguments);
+                            }
                             
-                            for (var i = 0; i < urlPatterns.length && !product_id; i++) {
-                                var match = this._url.match(urlPatterns[i]);
-                                if (match && match[1]) {
-                                    product_id = match[1];
-                                    break;
+                            var isSearchaniseAddToCart = this._url && (
+                                (this._url.includes('se_ajax_add_to_cart') && this._url.includes('product_id=')) ||
+                                this._url.includes('snize') ||
+                                this._url.includes('searchanise')
+                            ) && 
+                            !(this._url && (
+                                this._url.includes('get_refreshed_fragments') ||
+                                this._url.includes('search-results') ||
+                                this._url.includes('se_get_results')
+                            ));
+                            
+                            if (isSearchaniseAddToCart) {
+                                lastIntercept = now;
+                                
+                                try {
+                                    var product_id = null;
+                                    var quantity = 1;
+                                    
+                                    var urlPatterns = [
+                                        /[?&]product_id=(\d+)/i,
+                                        /se_ajax_add_to_cart.*product_id[=:](\d+)/i
+                                    ];
+                                    
+                                    for (var i = 0; i < urlPatterns.length && !product_id; i++) {
+                                        var match = this._url.match(urlPatterns[i]);
+                                        if (match && match[1]) {
+                                            product_id = match[1];
+                                            break;
+                                        }
+                                    }
+                                    
+                                    var qtyMatch = this._url.match(/[?&](?:quantity|qty)=(\d+)/i);
+                                    if (qtyMatch && qtyMatch[1]) {
+                                        quantity = parseInt(qtyMatch[1]);
+                                    }
+                                    
+                                    if (product_id) {
+                                        self.addEventListener('load', function() {
+                                            if (self.status === 200) {
+                                                requestAnimationFrame(function() {
+                                                    setTimeout(function() {
+                                                        handleTikTokSearchaniseTracking(product_id, quantity, $);
+                                                    }, 50);
+                                                });
+                                            }
+                                        });
+                                    }
+                                    
+                                } catch(e) {
+                                    console.error('TTP Searchanise Error:', e);
                                 }
                             }
                             
-                            var qtyMatch = this._url.match(/[?&](?:quantity|qty)=(\d+)/i);
-                            if (qtyMatch && qtyMatch[1]) {
-                                quantity = parseInt(qtyMatch[1]);
+                            return originalSend.apply(this, arguments);
+                        };
+                    }
+                });
+            }, 500);
+        });
+        
+        // Funzione processing ottimizzata
+        function handleTikTokSearchaniseTracking(product_id, quantity, $) {
+            var product_name = '';
+            var product_price = 0;
+            
+            var selectors = [
+                '#snize-product-' + product_id,
+                '[data-original-product-id="' + product_id + '"]',
+                '[data-snize-product-id="' + product_id + '"]',
+                '.snize-product[data-id="' + product_id + '"]',
+                '[data-product-id="' + product_id + '"]'
+            ];
+            
+            var $productElement = null;
+            for (var k = 0; k < selectors.length && !$productElement; k++) {
+                var elements = $(selectors[k]);
+                if (elements.length > 0) {
+                    $productElement = elements.first();
+                    break;
+                }
+            }
+            
+            if ($productElement && $productElement.length > 0) {
+                var nameElement = $productElement.find('.snize-title, .snize-product-title, .product-title').first();
+                if (nameElement.length > 0) {
+                    product_name = nameElement.text().trim();
+                }
+                
+                var priceElement = $productElement.find('.snize-price, .price .amount').first();
+                if (priceElement.length > 0) {
+                    var priceText = priceElement.text().trim();
+                    
+                    if (priceText) {
+                        var priceMatch = priceText.match(/[\d.,]+/);
+                        if (priceMatch) {
+                            var priceString = priceMatch[0];
+                            
+                            if (priceString.includes('.') && priceString.includes(',')) {
+                                priceString = priceString.replace(/\./g, '').replace(',', '.');
+                            } 
+                            else if (priceString.includes(',') && !priceString.includes('.')) {
+                                priceString = priceString.replace(',', '.');
                             }
                             
-                            if (product_id) {
-                                self.addEventListener('load', function() {
-                                    if (self.status === 200) {
-                                        var product_name = '';
-                                        var product_price = 0;
-                                        
-                                        var selectors = [
-                                            '#snize-product-' + product_id,
-                                            '[data-original-product-id="' + product_id + '"]',
-                                            '[data-snize-product-id="' + product_id + '"]',
-                                            '.snize-product[data-id="' + product_id + '"]',
-                                            '[data-product-id="' + product_id + '"]'
-                                        ];
-                                        
-                                        var $productElement = null;
-                                        for (var k = 0; k < selectors.length && !$productElement; k++) {
-                                            var elements = $(selectors[k]);
-                                            if (elements.length > 0) {
-                                                $productElement = elements.first();
-                                                break;
-                                            }
-                                        }
-                                        
-                                        if ($productElement && $productElement.length > 0) {
-                                            var nameElement = $productElement.find('.snize-title, .snize-product-title, .product-title').first();
-                                            if (nameElement.length > 0) {
-                                                product_name = nameElement.text().trim();
-                                            }
-                                            
-                                            var priceElement = $productElement.find('.snize-price, .price .amount').first();
-                                            if (priceElement.length > 0) {
-                                                var priceText = priceElement.text().trim();
-                                                
-                                                if (priceText) {
-                                                    var priceMatch = priceText.match(/[\d.,]+/);
-                                                    if (priceMatch) {
-                                                        var priceString = priceMatch[0];
-                                                        
-                                                        if (priceString.includes('.') && priceString.includes(',')) {
-                                                            priceString = priceString.replace(/\./g, '').replace(',', '.');
-                                                        } 
-                                                        else if (priceString.includes(',') && !priceString.includes('.')) {
-                                                            priceString = priceString.replace(',', '.');
-                                                        }
-                                                        
-                                                        product_price = parseFloat(priceString);
-                                                        if (isNaN(product_price)) {
-                                                            product_price = 0;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        if (typeof ttq !== 'undefined' && typeof ttq.track === 'function') {
-                                            var trackingParams = {
-                                                contents: [{
-                                                    content_id: String(product_id),
-                                                    content_type: 'product',
-                                                    content_name: (product_name || '').trim()
-                                                }],
-                                                value: parseFloat(product_price || 0) * parseInt(quantity),
-                                                currency: 'EUR'
-                                            };
-                                            
-                                            ttq.track('AddToCart', trackingParams);
-                                            console.log('TikTok Searchanise AddToCart tracked:', trackingParams);
-                                            
-                                            $.post('<?php echo admin_url('admin-ajax.php'); ?>', {
-                                                action: 'ttp_track_add_to_cart_server',
-                                                product_id: product_id,
-                                                product_price: product_price || 0,
-                                                product_name: product_name || '',
-                                                quantity: quantity,
-                                                source: 'searchanise_ajax',
-                                                nonce: '<?php echo wp_create_nonce('ttp_tracking_nonce'); ?>'
-                                            });
-                                        }
-                                    }
-                                });
+                            product_price = parseFloat(priceString);
+                            if (isNaN(product_price)) {
+                                product_price = 0;
                             }
-                            
-                        } catch(e) {
-                            console.error('TTP Searchanise Error:', e);
                         }
                     }
-                    
-                    return originalSend.apply(this, arguments);
-                };
+                }
             }
-        });
+            
+            // TikTok tracking asincrono
+            if (typeof ttq !== 'undefined' && typeof ttq.track === 'function') {
+                var trackingParams = {
+                    contents: [{
+                        content_id: String(product_id),
+                        content_type: 'product',
+                        content_name: (product_name || '').trim()
+                    }],
+                    value: parseFloat(product_price || 0) * parseInt(quantity),
+                    currency: '<?php echo get_woocommerce_currency(); ?>'
+                };
+                
+                requestAnimationFrame(function() {
+                    ttq.track('AddToCart', trackingParams);
+                });
+                
+                // Server-side tracking asincrono
+                setTimeout(function() {
+                    if (typeof $ !== 'undefined') {
+                        $.post('<?php echo admin_url('admin-ajax.php'); ?>', {
+                            action: 'ttp_track_add_to_cart_server',
+                            product_id: product_id,
+                            product_price: product_price || 0,
+                            product_name: product_name || '',
+                            quantity: quantity,
+                            source: 'searchanise_ajax',
+                            nonce: '<?php echo wp_create_nonce('ttp_tracking_nonce'); ?>'
+                        });
+                    }
+                }, 100);
+            }
+        }
         </script>
         <?php
     }
@@ -345,11 +372,10 @@ class TTP_Events_Tracking {
                                 content_name: productData.name || ''
                             }],
                             value: parseFloat(productData.price || 0) * parseInt(quantity),
-                            currency: productData.currency || 'EUR'
+                            currency: productData.currency || '<?php echo get_woocommerce_currency(); ?>'
                         };
                         
                         ttq.track('AddToCart', trackingParams);
-                        console.log('TikTok AddToCart tracked:', trackingParams);
                         
                         $.post('<?php echo admin_url('admin-ajax.php'); ?>', {
                             action: 'ttp_track_add_to_cart_server',
@@ -393,7 +419,6 @@ class TTP_Events_Tracking {
                     };
                     
                     ttq.track('Search', searchData);
-                    console.log('TikTok Search tracked (URL):', searchData);
                     
                     $.post('<?php echo admin_url('admin-ajax.php'); ?>', {
                         action: 'ttp_track_search_server',
@@ -456,7 +481,6 @@ class TTP_Events_Tracking {
                 
                 if (!tracked) {
                     ttq.track('InitiateCheckout', checkoutData);
-                    console.log('TikTok InitiateCheckout tracked:', checkoutData);
                     
                     $.post('<?php echo admin_url('admin-ajax.php'); ?>', {
                         action: 'ttp_track_checkout_server',
@@ -481,7 +505,6 @@ class TTP_Events_Tracking {
                             };
                             
                             ttq.track('AddPaymentInfo', paymentData);
-                            console.log('TikTok AddPaymentInfo tracked:', paymentData);
                             
                             $.post('<?php echo admin_url('admin-ajax.php'); ?>', {
                                 action: 'ttp_track_checkout_server',
@@ -507,7 +530,9 @@ class TTP_Events_Tracking {
         ));
     }
     
-    //traccia evebto aqcuisto
+    /**
+     * Traccia evento acquisto
+     */
     public function track_purchase($order_id) {
         if (!$order_id) return;
         
@@ -557,12 +582,8 @@ class TTP_Events_Tracking {
                     content_type: 'product'                                // product, non product_group
                 };
                 
-                console.log('📤 Sending TikTok Purchase:', purchaseData);
-                
                 // EVENTO CORRETTO: Purchase (non "Place an Order")
                 ttq.track('Purchase', purchaseData);
-                
-                console.log('✅ TikTok Purchase tracked:', purchaseData);
             }
         });
         </script>
@@ -575,9 +596,6 @@ class TTP_Events_Tracking {
             'external_id' => $order->get_user_id() ?: 'guest_' . $order_id
         );
         
-        // Debug server-side
-        error_log('TTP Purchase Debug - Order ID: ' . $order_id . ', Total: ' . $order_total . ', Products: ' . count($content_ids));
-        
         TTP_API_Server::send_event('Purchase', array(
             'content_ids' => $content_ids,                    // ARRAY di Product ID
             'contents' => $contents,                          // ARRAY di prodotti
@@ -588,9 +606,6 @@ class TTP_Events_Tracking {
         
         // Segna come tracciato
         update_post_meta($order_id, '_ttp_tracked', true);
-        
-        // Debug aggiuntivo
-        error_log('TTP Purchase - Content IDs: ' . implode(',', $content_ids) . ' - Value: ' . $order_total);
     }
     
     /**
